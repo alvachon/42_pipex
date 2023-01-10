@@ -6,7 +6,7 @@
 /*   By: alvachon <alvachon@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/03 09:23:50 by alvachon          #+#    #+#             */
-/*   Updated: 2023/01/06 19:39:47 by alvachon         ###   ########.fr       */
+/*   Updated: 2023/01/10 16:06:52 by alvachon         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,6 +40,7 @@ CMD : Voir les specs . . .
 #define ERROR_COMMAND "Problem with validity of command.\n"
 #define ERROR_PIPE "Problem with the pipe stream (fds[0], fds[1]).\n"
 #define ERROR_PATH "Problem with the environ path. \n"
+#define ERROR_EXECVE "Problem with execve. \n"
 
 void	*ft_memset(void *b, int c, size_t len)
 {
@@ -225,26 +226,23 @@ char	*ft_strjoin(char const *s1, char const *s2)
 	return (NULL);
 }
 
+
+
 void	usage_error(char *error_message)
 {
-	fprintf(stderr, "Error: %s \n", error_message);
+	fprintf(stderr, "Error: %s \n", error_message);//
 	exit(EXIT_FAILURE);
 }
 
-/*envp*/
-int	path(char *env[], t_streams *data)
+int	path(t_streams *data)
 {
 	int		i;
-	char	*path;
 
 	i = 0;
-	while (ft_strncmp(env[i], "PATH=", 5))
+	while (ft_strncmp(data->env[i], "PATH", 4))
 		i++;
 	if (i == 0)
 		return (-1);
-	path = ft_strdup(&env[i][5]);
-	data->paths = ft_split(path, ':');
-	free(path);
 	return (0);
 }
 
@@ -255,22 +253,17 @@ int	usage_check(int ac, char **av, char *env[], t_streams *data)
 	data->infile = open(av[1], O_RDONLY);
 	if (data->infile < 0)
 		usage_error(NO_FILE);
-	data->cmd1 = av[2];
-	data->cmd2 = av[3];
-	data->outfile = open(av[ac - 1], O_TRUNC | O_CREAT | O_RDWR, 0644);
+	data->outfile = open(av[ac - 1], O_TRUNC | O_CREAT | O_RDWR, 0777);
 	if (data->outfile < 0)
 		usage_error(NO_FILE);
-	if (pipe(data->fds) < 0)
-		usage_error(ERROR_PIPE);
-	if (path(env, data) < 0)
+	data->env = env;
+	if (path(data) < 0)
 		usage_error(ERROR_PATH);
-	data->envp = env;
 	return (0);
 }
 
 void	clean_close(t_streams *data)
 {
-	printf("Success\n");
 	close(data->infile);
 	close(data->outfile);
 	close(data->fds[1]);
@@ -279,152 +272,91 @@ void	clean_close(t_streams *data)
 	free(data);
 }
 
-char	*find_path(char	*command_name, t_streams *data)
+char *find_path(char *cmd, t_streams *data)
 {
-	char	*path;
 	int		i;
+	char	**paths;
+	char	*url;
+	char	*path;
 
-	i = -1;
-	if (access(command_name, F_OK) == 0)
-		return (command_name);
-	path = ft_strjoin("./", command_name);
-	if (access(path, F_OK) == 0)
-		return (path);
-	while (data->paths[++i])
+	i = 0;
+	while (ft_strnstr(data->env[i], "PATH", 4) ==  0)//
+		i++;
+	paths = ft_split(data->env[i] + 5, ':');
+	i = 0;
+	while (paths[i])
 	{
-		path = ft_strjoin(data->paths[i], "/");
-		path = ft_strjoin(path, command_name);
+		url = ft_strjoin(paths[i], "/");
+		path = ft_strjoin(url, cmd);
+		free(url);
+		i++;
 		if (access(path, F_OK) == 0)
 			return (path);
+		free(path);
+		i++;
 	}
-	return (NULL);
+	i = -1;
+	while (paths[++i])
+		free(paths);
+	return (0);
 }
 
-char	*cmd_path(t_streams *data)
+void	execute(char **av, t_streams *data)
 {
-	data->argvec = ft_split(data->cmd1, ' ');
-	data->arg_path = find_path(data->argvec[0], data);
-	if (data->arg_path == NULL)
+	char	**cmd;
+	int		i;
+	char	*path;
+
+	i = -1;
+	cmd = ft_split(*av, ' ');
+	path = find_path(cmd[0], data);
+	if (!path)
 	{
-		perror("execve");
-		//free_child();
-		clean_close(data);
-		exit(2);
+		while (cmd[++i])
+			free(cmd[i]);
+		free(cmd);
+		usage_error(ERROR_PATH);
 	}
-	return (data->arg_path);
+	if (execve(path, cmd, data->env) == -1)
+		usage_error(ERROR_EXECVE);
 }
 
-char *const	*cmd_argvec(t_streams *data)
+void parent_pid(char **av, t_streams *data)
 {
-	return (data->argvec);
+	dup2(data->fds[0], STDIN_FILENO);
+	dup2(data->outfile, STDOUT_FILENO);
+	close(data->fds[1]);
+	execute(&av[3], data);
 }
 
-void	first_command(t_streams *data)
+void child_pid(char **av, t_streams *data)
 {
-	data->child_pid1 = fork();
-	if (data->child_pid1 < 0)
-	{
-		perror("fork");
-		clean_close(data);
-		exit(2);
-	}
-	if (data->child_pid1 == 0)
-	{
-		dup2(data->infile, STDIN_FILENO);
-		dup2(data->fds[1], STDOUT_FILENO);
-		close(data->fds[0]);
-		close(data->fds[1]);
-		execve(cmd_path(data), cmd_argvec(data), data->envp);
-	}
-}
-
-void	second_pid(t_streams *data)
-{
-	data->child_pid2 = fork();
-	if (data->child_pid2 < 0)
-	{
-		perror("fork");
-		clean_close(data);
-		exit(3);
-	}
-	if (data->child_pid2 == 0)
-	{
-		dup2(data->fds[0], STDIN_FILENO);
-		close(data->fds[0]);
-		close(data->fds[1]);
-		//execlp("ping", "ping", "-c", "5", "google.com", NULL);
-	}
-}
-
-void	pipex(t_streams *data)
-{
-	first_command(data);
-
+	dup2(data->fds[1], STDIN_FILENO);
+	dup2(data->infile, STDOUT_FILENO);
+	close(data->fds[0]);
+	execute(&av[2], data);
 }
 
 int	main(int ac, char **av, char *env[])
 {
 	t_streams	*data;
+	pid_t		pid1;
 
 	data = ft_calloc(1, sizeof(t_streams));
 	if (usage_check(ac, av, env, data) == 0)
 	{
-		pipex(data);
-		second_pid(data);
-		close(data->fds[0]);
-		close(data->fds[1]);
-		waitpid(data->child_pid2, NULL, 0);
-		waitpid(data->child_pid1, NULL, 0);
+		if (pipe(data->fds) == -1)
+			usage_error(ERROR_PIPE);
+		pid1 = fork();
+		if (pid1 == -1)
+			usage_error(ERROR_PIPE);
+		if (pid1 == 0)
+			child_pid(av, data);
+		waitpid(pid1, NULL, 0);
+		parent_pid(av, data);
 		clean_close(data);
 		return (0);
 	}
-	return (-1);
+	else
+		clean_close(data);
 }
-
-/*
-int	main(int ac, char **av)
-{
-	int	fd[2];
-	int	child_pid1;
-	int	child_pid2;
-
-	if (pipe(fd) == -1)
-		return (1);
-
-	child_pid1 = fork();
-	if (child_pid1 < 0)
-	{
-		perror("fork");
-		return (2);
-	}
-
-	if (child_pid1 == 0)
-	{
-		dup2(fd[1], STDOUT_FILENO);
-		close(fd[0]);
-		close(fd[1]);
-		//execlp("ping", "ping", "-c", "5", "google.com", NULL);
-	}
-
-	child_pid2 = fork();
-	if (child_pid2 < 0)
-	{
-		perror("fork");
-		return (3);
-	}
-
-	if (child_pid2 == 0)
-	{
-		dup2(fd[0], STDIN_FILENO);
-		close(fd[0]);
-		close(fd[1]);
-		//execlp("grep", "grep", "rtt", NULL);
-	}
-
-	close(fd[0]);
-	close(fd[1]);
-	waitpid(child_pid2, NULL, 0);
-	waitpid(child_pid1, NULL, 0);
-	return (0);
-}
-*/

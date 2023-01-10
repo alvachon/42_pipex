@@ -6,7 +6,7 @@
 /*   By: alvachon <alvachon@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/03 09:24:09 by alvachon          #+#    #+#             */
-/*   Updated: 2023/01/06 19:04:16 by alvachon         ###   ########.fr       */
+/*   Updated: 2023/01/10 16:06:52 by alvachon         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,14 +19,8 @@ typedef struct s_streams
 	int		infile;
 	int		outfile;
 	int		fds[2];
-	int		child_pid1;
-	int		child_pid2;
 	char	**paths;
-	char	*cmd1;
-	char	*cmd2;
-	char	**argvec;
-	char	*arg_path;
-	char	**envp;
+	char	**env;
 }	t_streams
 ;
 
