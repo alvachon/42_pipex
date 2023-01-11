@@ -6,7 +6,7 @@
 /*   By: alvachon <alvachon@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/03 09:23:50 by alvachon          #+#    #+#             */
-/*   Updated: 2023/01/10 16:06:52 by alvachon         ###   ########.fr       */
+/*   Updated: 2023/01/11 15:49:24 by alvachon         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,6 +22,7 @@ CMD : Voir les specs . . .
 * ./pipex file1 cmd1 cmd2 file2
 
 * < infile grep a1 | wc -w > outfile
+* sample < cat | grep Apple
 * ./pipex infile "ls -l" "wc -1" outfile
 
 * handle multiple pipe
@@ -258,13 +259,23 @@ void	ft_putstr_fd(char *s, int fd)
 	write(fd, s, ft_strlen(s));
 }
 
-
-void	error(char *error_message)
+void	clean_close(t_streams *data)
 {
-	ft_putstr_fd(error_messge, stderr);
-	exit(EXIT_FAILURE);
+	close(data->infile);
+	close(data->outfile);
+	close(data->fds[1]);
+	close(data->fds[0]);
+	ft_freeall(data->paths);
+	free(data);
 }
 
+void	error(char *error_message, t_streams *data)
+{
+	ft_putstr_fd(error_message, 2);
+	clean_close(data);
+	exit(EXIT_FAILURE);
+}
+ 
 int	path(t_streams *data)
 {
 	int		i;
@@ -280,27 +291,17 @@ int	path(t_streams *data)
 int	usage_check(int ac, char **av, char *env[], t_streams *data)
 {
 	if (ac != 5)
-		error(ARG_COUNT);
+		error(ARG_COUNT, data);
 	data->infile = open(av[1], O_RDONLY);
 	if (data->infile < 0)
-		error(NO_FILE);
+		error(NO_FILE, data);
 	data->outfile = open(av[ac - 1], O_TRUNC | O_CREAT | O_RDWR, 0777);
 	if (data->outfile < 0)
-		error(NO_FILE);
+		error(NO_FILE, data);
 	data->env = env;
 	if (path(data) < 0)
-		error(ERROR_PATH);
+		error(ERROR_PATH, data);
 	return (0);
-}
-
-void	clean_close(t_streams *data)
-{
-	close(data->infile);
-	close(data->outfile);
-	close(data->fds[1]);
-	close(data->fds[0]);
-	ft_freeall(data->paths);
-	free(data);
 }
 
 char *find_path(char *cmd, t_streams *data)
@@ -332,40 +333,42 @@ char *find_path(char *cmd, t_streams *data)
 	return (0);
 }
 
-void	execute(char **av, t_streams *data)
+void	execute(char *av, t_streams *data)
 {
 	char	**cmd;
 	int		i;
 	char	*path;
 
 	i = -1;
-	cmd = ft_split(*av, ' ');
+	cmd = ft_split(av, ' ');
 	path = find_path(cmd[0], data);
 	if (!path)
 	{
 		while (cmd[++i])
 			free(cmd[i]);
 		free(cmd);
-		error(ERROR_PATH);
+		error(ERROR_PATH, data);
 	}
 	if (execve(path, cmd, data->env) == -1)
-		error(ERROR_EXECVE);
+		error(ERROR_EXECVE, data);
 }
 
 void parent_pid(char **av, t_streams *data)
 {
-	dup2(data->fds[0], STDIN_FILENO);
-	dup2(data->outfile, STDOUT_FILENO);
 	close(data->fds[1]);
-	execute(&av[3], data);
+	dup2(data->outfile, STDOUT_FILENO);
+	close(data->outfile);
+	dup2(data->fds[0], STDIN_FILENO);
+	execute(av[3], data);
 }
 
 void child_pid(char **av, t_streams *data)
 {
-	dup2(data->fds[1], STDIN_FILENO);
-	dup2(data->infile, STDOUT_FILENO);
 	close(data->fds[0]);
-	execute(&av[2], data);
+	dup2(data->infile, STDIN_FILENO);
+	close(data->infile);
+	dup2(data->fds[1], STDOUT_FILENO);
+	execute(av[2], data);
 }
 
 int	main(int ac, char **av, char *env[])
@@ -377,15 +380,14 @@ int	main(int ac, char **av, char *env[])
 	if (usage_check(ac, av, env, data) == 0)
 	{
 		if (pipe(data->fds) == -1)
-			error(ERROR_PIPE);
+			error(ERROR_PIPE, data);
 		pid1 = fork();
 		if (pid1 == -1)
-			error(ERROR_PIPE);
+			error(ERROR_PIPE, data);
 		if (pid1 == 0)
 			child_pid(av, data);
 		waitpid(pid1, NULL, 0);
 		parent_pid(av, data);
-		clean_close(data);
 		return (0);
 	}
 	else
