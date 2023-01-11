@@ -226,11 +226,42 @@ char	*ft_strjoin(char const *s1, char const *s2)
 	return (NULL);
 }
 
-
-
-void	usage_error(char *error_message)
+char	*ft_strnstr(const char *haystack, const char *needle, size_t len)
 {
-	fprintf(stderr, "Error: %s \n", error_message);//
+	size_t	i;
+	size_t	j;
+
+	i = 0;
+	j = 0;
+	if (needle[0] == '\0')
+		return ((char *)haystack + i);
+	while (i < len && haystack[i] != '\0')
+	{
+		if (haystack[i] == needle[0])
+		{
+			while (haystack[i + j] == needle[j] && (i + j) < len \
+			&& haystack[i + j] != '\0')
+				j++;
+			if (needle[j] == '\0')
+				return ((char *)haystack + i);
+		}
+		j = 0;
+		i++;
+	}
+	return (NULL);
+}
+
+void	ft_putstr_fd(char *s, int fd)
+{
+	if (!s || fd < 0)
+		return ;
+	write(fd, s, ft_strlen(s));
+}
+
+
+void	error(char *error_message)
+{
+	ft_putstr_fd(error_messge, stderr);
 	exit(EXIT_FAILURE);
 }
 
@@ -249,16 +280,16 @@ int	path(t_streams *data)
 int	usage_check(int ac, char **av, char *env[], t_streams *data)
 {
 	if (ac != 5)
-		usage_error(ARG_COUNT);
+		error(ARG_COUNT);
 	data->infile = open(av[1], O_RDONLY);
 	if (data->infile < 0)
-		usage_error(NO_FILE);
+		error(NO_FILE);
 	data->outfile = open(av[ac - 1], O_TRUNC | O_CREAT | O_RDWR, 0777);
 	if (data->outfile < 0)
-		usage_error(NO_FILE);
+		error(NO_FILE);
 	data->env = env;
 	if (path(data) < 0)
-		usage_error(ERROR_PATH);
+		error(ERROR_PATH);
 	return (0);
 }
 
@@ -274,13 +305,13 @@ void	clean_close(t_streams *data)
 
 char *find_path(char *cmd, t_streams *data)
 {
-	int		i;
+	int	i;
 	char	**paths;
 	char	*url;
 	char	*path;
 
 	i = 0;
-	while (ft_strnstr(data->env[i], "PATH", 4) ==  0)//
+	while (ft_strnstr(data->env[i], "PATH", 4) ==  0)
 		i++;
 	paths = ft_split(data->env[i] + 5, ':');
 	i = 0;
@@ -315,10 +346,10 @@ void	execute(char **av, t_streams *data)
 		while (cmd[++i])
 			free(cmd[i]);
 		free(cmd);
-		usage_error(ERROR_PATH);
+		error(ERROR_PATH);
 	}
 	if (execve(path, cmd, data->env) == -1)
-		usage_error(ERROR_EXECVE);
+		error(ERROR_EXECVE);
 }
 
 void parent_pid(char **av, t_streams *data)
@@ -346,10 +377,10 @@ int	main(int ac, char **av, char *env[])
 	if (usage_check(ac, av, env, data) == 0)
 	{
 		if (pipe(data->fds) == -1)
-			usage_error(ERROR_PIPE);
+			error(ERROR_PIPE);
 		pid1 = fork();
 		if (pid1 == -1)
-			usage_error(ERROR_PIPE);
+			error(ERROR_PIPE);
 		if (pid1 == 0)
 			child_pid(av, data);
 		waitpid(pid1, NULL, 0);
