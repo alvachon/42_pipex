@@ -6,7 +6,7 @@
 /*   By: alvachon <alvachon@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/03 09:23:50 by alvachon          #+#    #+#             */
-/*   Updated: 2023/01/17 14:55:24 by alvachon         ###   ########.fr       */
+/*   Updated: 2023/01/18 20:06:07 by alvachon         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,7 +38,7 @@ char	*find_path(char *cmd, char *env[])
 	return (0);
 }
 
-void	do_command(char *av, char *env[])
+void	execute_token(char *av, char *env[])
 {
 	char	**cmd;
 	int		i;
@@ -66,7 +66,7 @@ void	pipe_out(char **av, int *fds, char *env[])
 	close(fds[1]);
 	dup2(fds[0], STDIN_FILENO);
 	dup2(outfile, STDOUT_FILENO);
-	do_command(av[3], env);
+	execute_token(av[3], env);
 }
 
 void	child_pipe_in(char **av, int *fds, char *env[])
@@ -79,7 +79,7 @@ void	child_pipe_in(char **av, int *fds, char *env[])
 	close(fds[0]);
 	dup2(infile, STDIN_FILENO);
 	dup2(fds[1], STDOUT_FILENO);
-	do_command(av[2], env);
+	execute_token(av[2], env);
 }
 
 int	main(int ac, char **av, char *env[])

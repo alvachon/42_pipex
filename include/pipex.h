@@ -6,7 +6,7 @@
 /*   By: alvachon <alvachon@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/03 09:24:09 by alvachon          #+#    #+#             */
-/*   Updated: 2023/01/17 14:57:32 by alvachon         ###   ########.fr       */
+/*   Updated: 2023/01/18 18:49:15 by alvachon         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,7 +40,7 @@ now good info on standard fd 0 and 1 (stdin, stdout) for second part.*/
 void	pipe_out(char **av, int *fds, char *env[]);
 
 /* Find the access if one, execute command if one. */
-void	do_command(char *av, char *env[]);
+void	execute_token(char *av, char *env[]);
 char	*find_path(char *cmd, char *env[]);
 
 char	**ft_freeall(char **str);

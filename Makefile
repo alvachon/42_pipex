@@ -6,7 +6,7 @@
 #    By: alvachon <alvachon@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2022/12/14 11:17:44 by alvachon          #+#    #+#              #
-#    Updated: 2023/01/17 14:39:52 by alvachon         ###   ########.fr        #
+#    Updated: 2023/01/18 18:47:26 by alvachon         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -19,6 +19,10 @@ FLAGS    := -Wall -Wextra -Werror
 
 SRCS        :=      src/pipex.c \
 					src/utils.c \
+					src/strmod.c
+
+BONUS		:=		src/pipex_bonus.c \
+					src/strmod_bonus.c \
 					src/strmod.c
                           
 OBJS        := $(SRCS:.c=.o)
