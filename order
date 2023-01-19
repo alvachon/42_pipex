@@ -1,0 +1,7 @@
+./pipex input "grep Hello" "wc -l" output
+
+./pipex input "grep Hello" "ls -la" output
+
+./pipex input "ls -la" "wc -l" output
+
+./pipex input "ls -la" "wc -l" "grep Hello" "wc -c" output

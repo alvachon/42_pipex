@@ -6,7 +6,7 @@
 #    By: alvachon <alvachon@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2022/12/14 11:17:44 by alvachon          #+#    #+#              #
-#    Updated: 2023/01/18 18:47:26 by alvachon         ###   ########.fr        #
+#    Updated: 2023/01/18 21:20:49 by alvachon         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -19,13 +19,14 @@ FLAGS    := -Wall -Wextra -Werror
 
 SRCS        :=      src/pipex.c \
 					src/utils.c \
-					src/strmod.c
+					src/libft.c
 
-BONUS		:=		src/pipex_bonus.c \
-					src/strmod_bonus.c \
-					src/strmod.c
+BSRCS		:=		src/bonus_pipex.c \
+					src/bonus_heredoc.c
                           
 OBJS        := $(SRCS:.c=.o)
+
+BBJS		:= $(SRCS:.c=.o) $(BSRCS:.c=.o)
 
 ################################################################################
 #                                  Makefile  objs                              #
@@ -40,62 +41,30 @@ BLUE		:= \033[1;34m
 CYAN 		:= \033[1;36m
 RM		    := rm -f
 
-UNAME		:=	$(shell uname)
-
-#Custom command for MacOS vs Linux
-ifeq ($(UNAME), Darwin)
 .c.o:
-	${CC} ${FLAGS} -Imlx -c $< -o ${<:.c=.o}
-endif
+	${CC} ${FLAGS} -c $< -o ${<:.c=.o}
 
-ifeq ($(UNAME), Linux)
-.c.o:
-	${CC} ${FLAGS} -Imlx_linux -c $< -o ${<:.c=.o}
-endif
-##
-
-ifeq ($(UNAME), Darwin)
 $(NAME): ${OBJS}
 			@echo "$(GREEN)Compilation ${CLR_RMV}of ${YELLOW}$(NAME) ${CLR_RMV}..."
 			$(CC) $(CFLAGS) -g3 -Ofast -o $(NAME) $(OBJS)
 			@echo "$(GREEN)$(NAME) created[0m ✔️"
-endif
-
-ifeq ($(UNAME), Linux)
-$(NAME): ${OBJS}
-			@echo "$(GREEN)Linux compilation ${CLR_RMV}of ${YELLOW}$(NAME) ${CLR_RMV}..."
-			$(CC) $(CFLAGS) -g3 -o $(NAME) $(OBJS)
-			@echo "$(GREEN)$(NAME) created[0m ✔️"
-endif
 
 all:		${NAME}
 
-ifeq ($(UNAME), Darwin)
+bonus:		${BBJS}
+			@echo "$(GREEN)Compilation ${CLR_RMV}of ${YELLOW}$(NAME) BONUS ${CLR_RMV}..."
+			$(CC) $(CFLAGS) -g3 -Ofast -o $(NAME) ${BBJS}
+			@echo "$(GREEN)$(NAME) created[0m ✔️"
+
 clean:
 			@ ${RM} *.o */*.o */*/*.o
 			@ rm -rf $(NAME).dSYM >/dev/null 2>&1
 			@ echo "$(RED)Deleting $(CYAN)$(NAME) $(CLR_RMV)objs ✔️"
-endif
-
-ifeq ($(UNAME), Linux)
-clean:
-			@ ${RM} *.o */*.o */*/*.o
-			@ rm -rf $(NAME).dSYM >/dev/null 2>&1
-			@ echo "$(RED)Deleting $(CYAN)$(NAME) $(CLR_RMV)objs ✔️"
-endif
 
 
-ifeq ($(UNAME), Linux)
 fclean:		clean
 			@ ${RM} ${NAME}
 			@ echo "$(RED)Deleting $(CYAN)$(NAME) $(CLR_RMV)binary ✔️"
-endif
-
-ifeq ($(UNAME), Darwin)
-fclean:		clean
-			@ ${RM} ${NAME}
-			@ echo "$(RED)Deleting $(CYAN)$(NAME) $(CLR_RMV)binary ✔️"
-endif
 
 re:			fclean all
 

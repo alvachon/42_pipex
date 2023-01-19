@@ -6,13 +6,13 @@
 /*   By: alvachon <alvachon@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/17 14:37:16 by alvachon          #+#    #+#             */
-/*   Updated: 2023/01/17 14:38:39 by alvachon         ###   ########.fr       */
+/*   Updated: 2023/01/18 21:00:08 by alvachon         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../include/pipex.h"
 
-size_t	ft_strlen(const char *s)
+size_t	ft_strlen(const char *s)//
 {
 	int	i;
 
